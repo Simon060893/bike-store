@@ -17,6 +17,9 @@ $escaped_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
 
     <script src="node_modules/angular/angular.min.js"></script>
     <script src="node_modules/angular-ui-router/release/angular-ui-router.min.js"></script>
+    <script src="node_modules/three/build/three.min.js"></script>
+    <script src="node_modules/three-obj-loader/dist/index.js"></script>
+    <script src="assets/libs/OrbitControls.js"></script>
     <script src="dist/scripts/main.js"></script>
 
     <style>
@@ -24,6 +27,25 @@ $escaped_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
             padding:0;
             margin: 0;
         }
+		.full{
+			position:absolute;
+			width:100%;
+			height:100%;
+			background:rgba(0,0,0,0.6);
+		}
+		3d-view{
+			position:absolute;
+			width:80%;
+			height:50%;
+			padding:15px;
+			background:#fff;
+			left:50%;
+			top:50%;
+			transform:translate(-50%, -50%);
+		}
+		.full,nav{
+			 z-index: 99999999999999;
+		}
         .item-bike{
             text-align: center;
             font-weight: 900;
@@ -115,7 +137,7 @@ $escaped_url = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
             background: #fff;
             box-shadow: 0 3px 10px -2px rgba(0,0,0,.1);
             border: 1px solid rgba(0,0,0,.1);
-            z-index: 99999999999999;
+           
         }
         nav ul{
             list-style: none;

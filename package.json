@@ -20,7 +20,9 @@
     "angular": "^1.5.8",
     "angular-ui-router": "^0.3.1",
     "bootstrap": "^3.3.7",
-    "gulp": "^3.9.1"
+    "gulp": "^3.9.1",
+    "three": "^0.82.1",
+    "three-obj-loader": "^1.0.2"
   },
   "devDependencies": {
     "del": "^2.2.2",

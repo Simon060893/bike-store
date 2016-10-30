@@ -7,12 +7,14 @@
         </div>
 
         <div class="row">
-            <div class="col-md-3 item-bike" ng-repeat="bike in bikes  | filter:search:strict">
+            <div class="col-md-3 item-bike" ng-repeat="bike in bikes.list  | filter:search:strict">
 
-                <img src="{{bike.img}}">
+                <img src="{{bike.img}}" ng-click="bikes.selectBike(bike)">
                 <p> {{bike.name}}</p>
                 <p> Price: <span>{{bike.price}}$ </span></p>
             </div>
         </div>
     </div>
 </selector>
+
+<div ng-show="bikes.selectedBike" ng-click="bikes.selectBike(null)" class="full pop-up"><3d-view></3d-view></div>
