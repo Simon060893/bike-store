@@ -1,0 +1,18 @@
+<selector>
+    <div class="container home">
+        <h1>View of moto-bikes</h1>
+
+        <div class="row">
+            <div class="col-md-12"><input type="text" name="search" ng-model="search.$" placeholder="Search..."></div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-3 item-bike" ng-repeat="bike in bikes  | filter:search:strict">
+
+                <img src="{{bike.img}}">
+                <p> {{bike.name}}</p>
+                <p> Price: <span>{{bike.price}}$ </span></p>
+            </div>
+        </div>
+    </div>
+</selector>
