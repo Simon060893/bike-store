@@ -35,7 +35,7 @@ gulp.task('scripts', function() {
     .pipe(concat('main.js'))
     .pipe(gulp.dest('dist/scripts'))
     .pipe(rename({ suffix: '.min' }))
-    .pipe(uglify())
+    // .pipe(uglify())
     .pipe(gulp.dest('dist/scripts'))
     .pipe(notify({ message: 'Scripts task complete' }));
 });
@@ -55,7 +55,7 @@ gulp.task('clean', function() {
 
 // Default task
 gulp.task('default', ['clean'], function() {
-  gulp.start( 'scripts' ,'images','styles');
+  gulp.start( 'images','styles','scripts' );
 });
 
 // Watch

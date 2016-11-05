@@ -1,4 +1,4 @@
-main.directive('3dView', function ($timeout) {
+main.directive('threedView', function ($timeout) {
     return {
         restrict: 'E',
         transclude: true,
@@ -12,13 +12,11 @@ main.directive('3dView', function ($timeout) {
                 },
                 post: function (scope, element, attrs) {
                     var webglEl = new MyScene(element);
-                    
-                    
-                    scope.$watch('selectedBike',function(newVal,oldVal){
+
+                    scope.$parent.$watch('bikes.selectedBike',function(newVal,oldVal){
 						webglEl.utils.actionAnimate(newVal);
 						 
-                        
-                    }
+                    });
                 }
             }
         }

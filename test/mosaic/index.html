@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #image, #bufferImage,#bufferArea {
+            position: absolute;
+            top: -100vh;
+            left: -100vw;
+            visibility: hidden;
+        }
+
+        * {
+            /*float: left;*/
+        }
+
+        #colorsP > p {
+            display: inline;
+            width: 10vw;
+            height: 2vh;
+            margin: 2px 0;
+            float: left;
+
+        }
+
+        #colorsP {
+            display: inline-block;
+            overflow: auto;
+            max-height: 40vh;
+        }
+
+        #files {
+            display: none;
+        }
+    </style>
+    <script src="libs/dat.gui.min.js"></script>
+</head>
+<body>
+<canvas id="canvas"></canvas>
+<canvas id="bufferArea"></canvas>
+<canvas id="bufferImage"></canvas>
+<input type="file" id="files">
+<!--<input class="jscolor" value="ab2567"  onchange="onChangeColor(this.jscolor)">-->
+<img src="2601856bc70d100d91a49975a15dcc90.jpg" id="image">
+
+<script>
+    var canvas, image,
+            colors = [],
+            gui,
+            property;
+    function start() {
+        canvas = document.getElementById('canvas');
+        image = document.getElementById('image');
+        document.getElementById('files').addEventListener('change', function (e) {
+            var file = e.target.files[0];
+            if (!file.type.match(/image/))return alert("only image");
+
+            var reader = new FileReader();
+            reader.onload = function (ev) {
+                image.src = ev.target.result;
+                redrawImage();
+            }
+            reader.readAsDataURL(file);
+        });
+
+//        pickArea();
+
+        initGui();
+        redrawImage();
+        generateColors();
+
+
+    }
+    function initGui() {
+        property = {
+            polygons: ['QUAD', 'TRIANGLE', 'RANDAOM'],
+            colorsAct: ['ADD', 'REPLACE'],
+            selectedDrawBy: ['VERTEX', 'POLYGON'],
+            accuracy: 1,
+            countOfPolygons: 7,
+            countGeneratedColors: 10,
+            colorFill: [255, 255, 255, 1.0],
+            loadImage: function () {
+                document.getElementById('files').click()
+            },
+            redrawImageByGeneratedColors: function () {
+                redrawImageBy();
+            },
+            changeColors: function () {
+                generateColors();
+                redrawImage()
+            }
+        };
+        property.curPolygon = property.polygons[0];
+        property.curselectedDrawBy = property.selectedDrawBy[0];
+        property.curColorAction = property.colorsAct[0];
+
+        gui = new dat.GUI({width: 240});
+        gui.add(property, 'curColorAction', property.colorsAct).onChange(function (value) {
+            redrawImage();
+        });
+        gui.add(property, 'curPolygon', property.polygons).onChange(function (value) {
+            redrawImage();
+        });
+        gui.add(property, 'curselectedDrawBy', property.selectedDrawBy).onChange(function (value) {
+            redrawImage();
+        });
+        gui.add(property, 'accuracy', 1, 15).onFinishChange(function (value) {
+            redrawImage();
+        });
+        gui.add(property, 'countOfPolygons', 3, 10).onFinishChange(function (value) {
+            redrawImage();
+        });
+        gui.add(property, 'countGeneratedColors', 1, 100).onFinishChange(function (value) {
+            redrawImage();
+            generateColors();
+        });
+        gui.addColor(property, 'colorFill').onChange(function (value) {
+            redrawImage(value);
+        });
+        gui.add(property, 'loadImage');
+        gui.add(property, 'redrawImageByGeneratedColors');
+        gui.add(property, 'changeColors');
+    }
+    function onChangeColor(v) {
+        redrawImage(v.rgb);
+    }
+
+    function generateColors() {
+        var
+                id = 'colorsP',
+                div = document.getElementById(id) || document.createElement('div'),
+                min = 0, max = 250;
+        div.id = id;
+        div.innerHTML = "<h1>Generated Coolors</h1>"
+        for (var i = 0; i < property.countGeneratedColors; i++) {
+            var _c = {r: randomInteger(min, max), g: randomInteger(min, max), b: randomInteger(min, max)};
+            _c.sum = _c.r + _c.b + _c.g;
+            if (colors.filter(function (o) {
+                        return o.sum == _c.sum && (o.r == _c.r || o.g == _c.g )
+                    }).length) {
+                continue;
+            }
+            colors.push(_c);
+            var p = document.createElement('p');
+
+            p.style.backgroundColor = 'rgba(' + _c.r + "," + _c.g + "," + _c.b + ",1)";
+//            p.innerText ="r ="+_c.r+", b ="+_c.b+", g ="+_c.g;
+            p.innerHTML = "#" + i;
+            div.appendChild(p);
+        }
+        document.body.appendChild(div);
+    }
+    function randomInteger(min, max) {
+        var rand = min + Math.random() * (max - min)
+        rand = Math.round(rand);
+        return rand;
+    }
+
+    function redrawImage(rgb) {
+
+        var
+                _w = image.clientWidth,
+                _h = image.clientHeight;
+
+        if (_w / _h > 1) {
+            canvas.width = window.innerWidth / 2;
+            canvas.height = canvas.width * (_h / _w);
+        } else {
+            canvas.height = window.innerHeight / 2;
+            canvas.width = canvas.height * (_w / _h);
+
+        }
+
+
+//        return;
+        var cnt = canvas.getContext('2d');
+        cnt.drawImage(image, 0, 0, canvas.width, canvas.height);
+        splitImage();
+        if (!rgb)return;
+        var d = cnt.getImageData(0, 0, canvas.width, canvas.height),
+                _d = d.data;
+        for (var i = 0, en = _d.length; i < en; i += 4) {
+            _d[i] = (_d[i] + rgb[0]) / 2;
+            _d[i + 1] = (_d[i + 1] + rgb[1]) / 2;
+            _d[i + 2] = (_d[i + 2] + rgb[2]) / 2;
+        }
+        cnt.putImageData(d, 0, 0);
+
+    }
+
+    function pickArea() {
+        var context = canvas.getContext('2d');
+        var
+                _w = canvas.width,
+                _h = canvas.height;
+        var del = 50;
+        context.save();
+        context.beginPath();
+        context.moveTo(_w / 2, _h / 2);
+        context.lineTo(_w / 2 + del, _h / 2 + del / 2);
+        context.lineTo(_w / 2 + del * 2, _h / 2 + del / 2);
+        context.lineTo(_w / 2 + del, _h / 2 + del);
+        context.lineTo(_w / 2, _h / 2 + del);
+        context.lineTo(_w / 2, _h / 2);
+        context.stroke();
+        context.clip();
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        var d = context.getImageData(0, 0, canvas.width, canvas.height),
+                _d = d.data,
+                c = 0, sum = {r: 0, g: 0, b: 0, i: 0};
+        for (var i = 0, en = _d.length; i < en; i += 4) {
+
+            if (_d[i + 3] > 0) {
+                sum.g += _d[i + 1];
+                sum.b += _d[i + 2];
+                sum.i++;
+            }
+
+        }
+        sum.g = sum.g / sum.i;
+        sum.r = sum.r / sum.i;
+        sum.b = sum.b / sum.i;
+
+        var suma = sum.g + sum.r + sum.b,
+                selectedC = {min: 250};
+
+        for (var i = 0; i < colors.length; i++) {
+            var av = Math.abs(colors[i].sum - suma);
+            if (av < selectedC.min) {
+                selectedC.min = av;
+                selectedC.ite = i;
+            }
+        }
+
+        var _sel = colors[selectedC.ite];
+        for (var i = 0, en = _d.length; i < en; i += 4) {
+
+            if (_d[i + 3] > 0) {
+                _d[i] = (_d[i] + _sel.r) / 2;
+                _d[i + 1] = (_d[i + 1] + _sel.g) / 2;
+                _d[i + 2] = (_d[i + 2] + _sel.b) / 2;
+            }
+
+        }
+
+        var selectedP = document.getElementById('colorsP').childNodes[selectedC.ite];
+        selectedP.innerHTML += " SELECTED"
+        context.putImageData(d, 0, 0);
+
+//        context.restore();
+//        context.beginPath();
+//        context.moveTo(188, 150);
+//        context.quadraticCurveTo(288, 0, 388, 150);
+//        context.lineWidth = 10;
+//        context.quadraticCurveTo(288, 288, 188, 150);
+//        context.lineWidth = 10;
+//
+//        context.strokeStyle = 'blue';
+//        context.stroke();
+
+//        context.save();
+//        context.beginPath();
+//        context.moveTo(188, 150);
+//        context.quadraticCurveTo(288, 0, 388, 150);
+//        context.lineWidth = 10;
+//        context.quadraticCurveTo(288, 288, 188, 150);
+//        context.lineWidth = 10;
+//        context.clip();
+//        context.drawImage(image, 0,0, canvas.width,canvas.height);
+
+
+    }
+    function splitImage(cntx, callback) {
+        var _w = canvas.width,
+                _h = canvas.height;
+
+        var
+                sY = 100 / property.accuracy,
+                sX = 100 / property.accuracy,
+                context = cntx ? cntx : canvas.getContext('2d');
+
+        context.strokeStyle = '#ff0000';
+
+        switch (property.curPolygon) {
+            case property.polygons[0]:
+            {
+                for (var i = 0; i < _w; i += sX) {
+                    for (var y = 0; y < _h; y += sY) {
+                        var points = [
+                                    i, y,
+                                    i + sX, y,
+                                    i + sX, y + sY,
+                                    i + sX, y + sY,
+                                    i, y + sY
+                                ],
+                                bord = {x: i, y: y, x_: 0, y_: 0};
+                        selectArea(points, bord);
+                    }
+                }
+                break;
+            }
+            case property.polygons[1]:
+            {
+                for (var i = 0; i < _w; i += sX) {
+                    for (var y = 0; y < _h; y += sY) {
+
+                        var points = [
+                                    i, y,
+                                    i + sX / 2, y + sY / 2,
+                                    i + sX, y + sY,
+                                    i + sX / 2, y + sY,
+                                    i, y + sY
+                                ],
+                                bord = {x: i, y: y, x_: 0, y_: 0};
+                        selectArea(points, bord);
+                    }
+
+                }
+                break;
+            }
+            case property.polygons[2]:
+            {
+                for (var i = 0; i < _w; i += sX) {
+                    for (var y = 0; y < _h; y += sY) {
+
+                        var points = [
+                                    i, y,
+                                    i + sX / 2, y + sY / 2,
+                                    i + sX*0.8, y + sY*0.8,
+                                    i + sX, y + sY,
+                                    i + sX / 2, y + sY,
+                                    i*0.2, y + sY*0.2
+                                ],
+                                bord = {x: i, y: y, x_: 0, y_: 0};
+
+                        var numberOfSides = property.countOfPolygons,//randomInteger(3,9),
+                                size = sX/2,
+                                Xcenter = i,
+                                Ycenter = y;
+
+                        points =[];
+                        points.push(Xcenter +  size * Math.cos(0), Ycenter +  size *  Math.sin(0));
+
+                        for (var il = 1; il <= numberOfSides;il += 1) {
+                            points.push (Xcenter + size * Math.cos(il * 2 * Math.PI / numberOfSides), Ycenter + size * Math.sin(il * 2 * Math.PI / numberOfSides));
+                        }
+
+
+
+                        selectArea(points, bord);
+                    }
+
+                }
+                break;
+            }
+        }
+
+        function selectArea(points, bord) {
+            if (points.length) {
+                context.beginPath();
+                context.moveTo(points[0], points[1]);
+                for (var _pn = 2, _enP = points.length; _pn < _enP; _pn += 2) {
+                    var
+                            _x = points[_pn],
+                            _y = points[_pn + 1];
+                    context.lineTo(_x, _y);
+                    if (bord.x > _x)bord.x = _x;
+                    if (bord.y > _y)bord.y = _y;
+                    if (bord.x_ < _x)bord.x_ = _x;
+                    if (bord.y_ < _y)bord.y_ = _y;
+                }
+                context.closePath();
+                context.stroke();
+                if (callback)  callback(bord);
+            }
+        }
+
+
+    }
+
+    function polygon(ctx, x, y, radius, sides, startAngle, anticlockwise) {
+        if (sides < 3) return;
+        var a = (Math.PI * 2)/sides;
+        a = anticlockwise?-a:a;
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.rotate(startAngle);
+        ctx.moveTo(radius,0);
+        for (var i = 1; i < sides; i++) {
+            ctx.lineTo(radius*Math.cos(a*i),radius*Math.sin(a*i));
+        }
+        ctx.closePath();
+        ctx.restore();
+    }
+    function redrawImageBy() {
+
+        var cnt = canvas.getContext('2d'),
+                isAdd = property.curColorAction == property.colorsAct[0];
+
+
+        switch (property.curselectedDrawBy) {
+            case property.selectedDrawBy[0]:
+            {
+                var dImg = cnt.getImageData(0, 0, canvas.width, canvas.height),
+                        _d = dImg.data,
+                        _cL = colors.length;
+                for (var i = 0, en = _d.length; i < en; i += 4) {
+
+                    /* var suma = _d[i] + _d[i + 1] + _d[i + 2],
+                     selectedC = {min: 3 * 250, item: 0};
+
+                     for (var d = 0; d < _cL; d++) {
+                     var av = Math.abs(colors[d].sum - suma);
+                     if (av < selectedC.min) {
+                     selectedC.min = av;
+                     selectedC.item = d;
+                     }
+                     }*/
+
+                    var rgb = getSimilarColors({r: _d[i], g: _d[i + 1], b: _d[i + 2]}, colors).c;//,colors[selectedC.item];
+                    _d[i] = isAdd ? (_d[i] + rgb['r']) / 2 : rgb['r'];
+                    _d[i + 1] = isAdd ? (_d[i + 1] + rgb['g']) / 2 : rgb['g'];
+                    _d[i + 2] = isAdd ? (_d[i + 2] + rgb['b']) / 2 : rgb['b'];
+
+                }
+
+                cnt.putImageData(dImg, 0, 0);
+                break;
+            }
+            case  property.selectedDrawBy[1]:
+            {
+                var
+                        _can = document.getElementById('bufferImage'),
+                        _cant = document.getElementById('bufferArea'),
+                        _wid = canvas.width,
+                        _heig = canvas.height,
+                        listOfLabels = []
+                        ;
+                _can.width = _cant.width  = _wid;
+                _can.height =  _cant.height=  _heig;
+
+                var context = _can.getContext('2d');
+                var context2 = _cant.getContext('2d');
+
+                context2.clearRect(0, 0, canvas.width, canvas.height);
+                context.drawImage(image, 0, 0, _wid, _heig);
+                context2.save();
+
+                splitImage(context2, function (arg) {
+                    context2.clip();
+                    context2.drawImage(image, 0, 0, _wid, _heig);
+
+                    var dImg = context2.getImageData(arg.x, arg.y, arg.x_ - arg.x, arg.y_ - arg.y),
+                            _d = dImg.data,
+                            c = 0, sum = {r: 0, g: 0, b: 0, i: 1};
+                    for (var i = 0, en = _d.length; i < en; i += 4) {
+
+                        if (_d[i + 3] > 0) {
+                            sum.r += _d[i];
+                            sum.g += _d[i + 1];
+                            sum.b += _d[i + 2];
+                            sum.i++;
+                        }
+
+                    }
+                    sum.g = sum.g / sum.i;
+                    sum.r = sum.r / sum.i;
+                    sum.b = sum.b / sum.i;
+
+
+                    var selectedC = getSimilarColors(sum, colors),
+                            _sel = selectedC.c;
+                    for (var i = 0, en = _d.length; i < en; i += 4) {
+
+                        if (_d[i + 3] > 0) {
+                            _d[i] = isAdd ? (_d[i] + _sel.r) / 2 : _sel['r'];
+                            _d[i + 1] = isAdd ? (_d[i + 1] + _sel.g) / 2 : _sel['g'];
+                            _d[i + 2] = isAdd ? (_d[i + 2] + _sel.b) / 2 : _sel['b'];
+                        }
+
+                    }
+                    var dImgO = context.getImageData(arg.x, arg.y, arg.x_ - arg.x, arg.y_ - arg.y),
+                            _dataT = dImgO.data;
+                    for(var di =0; di<_d.length;di+=4){
+                        if(_d[di+3]>0){
+                            _dataT[di] = _d[di];
+                            _dataT[di+1] = _d[di+1];
+                            _dataT[di+2] = _d[di+2];
+                        }
+                    }
+                    context.putImageData(dImg, arg.x, arg.y);
+
+
+                    arg.n = "#" + selectedC.item;
+                    listOfLabels.push(arg);
+                    context2.restore();
+//
+                    context2.clearRect(0, 0, _wid, _heig);
+                    context2.fillStyle = "rgba(255,255,255,0)";
+                    context2.fillRect(0, 0, _wid, _heig);
+                    context2.save();
+                });
+
+                var image_s = new Image();
+                image_s.onload = function () {
+//                    context.save();
+                    cnt.drawImage(image_s, 0, 0, _wid, _heig);
+                    cnt.font = "13px Verdana";
+                    listOfLabels.forEach(function (d) {
+                        cnt.fillText(d.n, d.x, d.y);
+                    });
+                }
+                image_s.src = _can.toDataURL();
+
+                break;
+            }
+        }
+
+    }
+
+    Array.min = function (array) {
+        return Math.min.apply(Math, array);
+    };
+    function getSimilarColors(color, base_colors) {
+
+        //Convert to RGB, then R, G, B
+        var color_r = color['r'];
+        var color_g = color['g'];
+        var color_b = color['b'];
+
+        //Create an emtyp array for the difference betwwen the colors
+        var differenceArray = [];
+
+        //Function to find the smallest value in an array
+
+        //Convert the HEX color in the array to RGB colors, split them up to R-G-B, then find out the difference between the "color" and the colors in the array
+        base_colors.forEach(function (value, index) {
+            var base_colors_r = value['r'];
+            var base_colors_g = value['g'];
+            var base_colors_b = value['b'];
+
+            //Add the difference to the differenceArray
+            differenceArray.push(Math.sqrt((color_r - base_colors_r) * (color_r - base_colors_r) + (color_g - base_colors_g) * (color_g - base_colors_g) + (color_b - base_colors_b) * (color_b - base_colors_b)));
+        });
+
+        //Get the lowest number from the differenceArray
+        var lowest = Array.min(differenceArray);
+
+        //Get the index for that lowest number
+        var index = differenceArray.indexOf(lowest);
+
+        //Return the HEX code
+        return {c: base_colors[index], item: index};
+    }
+
+    setTimeout(function () {
+        start();
+    }, 500)
+</script>
+</body>
+</html>

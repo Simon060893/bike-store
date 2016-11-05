@@ -3,7 +3,7 @@ main.controller("BaseCntrl", ['$scope', function ($scope) {
 }]);
 main.controller("HomeCntrl", ['$scope', function ($scope) {
     
-	$scope.bikes{
+	$scope.bikes={
 		list:[
 			{img:"dist/images/bikes/bike4.jpg",price:100,name:'Harley'},
 			{img:"dist/images/bikes/bike2.jpg",price:110,name:'Yamaha'},
@@ -15,7 +15,10 @@ main.controller("HomeCntrl", ['$scope', function ($scope) {
 		],
 		selectBike:function(bike){
 			this.selectedBike = bike;
-		}
+		},
+		stop:function($event){
+		$event.stopPropagation();
+	}
 	}
     
 }]);
