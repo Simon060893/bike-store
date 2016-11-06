@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <style>
-        #image, #bufferImage, #bufferArea {
+        #image, #bufferImage,#bufferArea,.invisible {
             position: absolute;
             top: -100vh;
             left: -100vw;
@@ -35,6 +35,7 @@
         }
     </style>
     <script src="libs/dat.gui.min.js"></script>
+    <script src="libs/FileSaver.min.js"></script>
 </head>
 <body>
 <canvas id="canvas"></canvas>
@@ -96,6 +97,11 @@
             changeColors: function () {
                 generateColors();
                 redrawImage()
+            },
+            save:function () {
+                canvas.toBlob(function(blob) {
+                    saveAs(blob, "GRID.png");
+                });
             }
         };
         var circleCenter,stepPolygonPoints;
@@ -147,6 +153,7 @@
         gui.add(property, 'loadImage');
         gui.add(property, 'redrawImageByGeneratedColors');
         gui.add(property, 'changeColors');
+        gui.add(property, 'save');
     }
     function onChangeColor(v) {
         redrawImage(v.rgb);
@@ -190,10 +197,10 @@
                 _h = image.clientHeight;
 
         if (_w / _h > 1) {
-            canvas.width = window.innerWidth / 2;
+            canvas.width = window.innerWidth*0.8;
             canvas.height = canvas.width * (_h / _w);
         } else {
-            canvas.height = window.innerHeight / 2;
+            canvas.height = window.innerHeight  ;
             canvas.width = canvas.height * (_w / _h);
 
         }
@@ -306,6 +313,7 @@
                 sX = 100 / property.accuracy,
                 context = cntx ? cntx : canvas.getContext('2d');
 
+
         context.strokeStyle = '#ff0000';
 
         switch (property.curPolygon) {
@@ -321,7 +329,7 @@
                                     i, y + sY
                                 ],
                                 bord = {x: i, y: y, x_: 0, y_: 0};
-                        selectArea(points, bord);
+                        selectArea(points);
                     }
                 }
                 break;
@@ -339,7 +347,7 @@
                                     i, y + sY
                                 ],
                                 bord = {x: i, y: y, x_: 0, y_: 0};
-                        selectArea(points, bord);
+                        selectArea(points);
                     }
 
                 }
@@ -354,6 +362,8 @@
                         }
                     }
                 } else {
+
+
                     var
                             startPnts = [_w / 2, _h / 2];
 
@@ -385,7 +395,7 @@
                             ;
 
                     for (var minRad = sY, rad =minRad ; rad < maxRadius; rad += sY) {
-                        var bord = {x: _w, y: _h, x_: 0, y_: 0},
+                        var
                                 points = [],
                                 listP = [],
                                 isNotF =  rad > minRad ;
@@ -431,7 +441,6 @@
                                 points.push(x, y);
 
                             if (isEn && isNotF ){
-//                                isEn = false;
                                 var
                                         su = _stepCI,
                                         fX = prev[su],
@@ -440,12 +449,9 @@
                                         lY = points[points.length-1]
                                         ;
                                 _stepCI +=2;
-                                points.push(fX,fY);
-                                selectArea(points, bord);
-//                                if(rad >3*sY  )return
-                                bord = {x: _w, y: _h, x_: 0, y_: 0};
+                                points.push(fX,fY,points[0],points[1]);
+                                   selectArea(points,callback);
                                 points = [fX,fY,lX,lY];
-//                                if(_stepCI >=prev.length)_stepCI=0;
                             }else{
                                 isEn = true;
                             }
@@ -455,9 +461,7 @@
                     }
                         prev = listP;
                         if(!isNotF){
-                            selectArea(prev, bord);
-                        }else{
-
+                             selectArea(prev,callback);
                         }
                     }
                 }
@@ -482,11 +486,12 @@
             bord.center = [Xcenter, Ycenter];
 
 
-            selectArea(points, bord);
+            selectArea(points);
         }
 
-        function selectArea(points, bord) {
+        function selectArea(points,cntx ) {
             if (points.length) {
+                var bord= {x: _w, y: _h, x_: 0, y_: 0};
                 context.beginPath();
                 context.moveTo(points[0], points[1]);
                 for (var _pn = 2, _enP = points.length; _pn < _enP; _pn += 2) {
@@ -594,26 +599,26 @@
                 _can.height = _cant.height = _heig;
 
                 var context = _can.getContext('2d');
-                var context2 = _cant.getContext('2d');
-
+                var context2 = _cant.getContext('2d'),
+                        defaultI =  context2.createImageData(_wid,_heig);
                 context2.clearRect(0, 0, canvas.width, canvas.height);
                 context.drawImage(image, 0, 0, _wid, _heig);
                 context2.save();
 
                 splitImage(context2, function (arg) {
+                    var
+                            widImg =  arg.x_ - arg.x,
+                            height =  arg.y_ - arg.y;
+
+                    if(!widImg || !height)return;
                     context2.clip();
                     context2.drawImage(image, 0, 0, _wid, _heig);
 
                     var
-                           widImg =  arg.x_ - arg.x,
-                           height =  arg.y_ - arg.y;
-
-                    if(!widImg || !height)return
-                    var
 
                             dImg = context2.getImageData(arg.x, arg.y, widImg, height),
                             _d = dImg.data,
-                            c = 0, sum = {r: 0, g: 0, b: 0, i: 1};
+                           sum = {r: 0, g: 0, b: 0, i: 1};
                     for (var i = 0, en = _d.length; i < en; i += 4) {
 
                         if (_d[i + 3] > 0) {
@@ -629,28 +634,23 @@
                     sum.b = sum.b / sum.i;
 
 
-                    var selectedC = getSimilarColors(sum, colors),
-                            _sel = selectedC.c;
+                    var
+                            selectedC = getSimilarColors(sum, colors),
+                            _sel = selectedC.c,
+                            dImgO = context.getImageData(arg.x, arg.y, arg.x_ - arg.x, arg.y_ - arg.y),
+                            _dataT = dImgO.data;
                     for (var i = 0, en = _d.length; i < en; i += 4) {
 
                         if (_d[i + 3] > 0) {
-                            _d[i] = isAdd ? (_d[i] + _sel.r) / 2 : _sel['r'];
-                            _d[i + 1] = isAdd ? (_d[i + 1] + _sel.g) / 2 : _sel['g'];
-                            _d[i + 2] = isAdd ? (_d[i + 2] + _sel.b) / 2 : _sel['b'];
+                            _dataT[i] =      isAdd ? (_d[i] + _sel.r) / 2 : _sel['r'];
+                            _dataT[i + 1] =  isAdd ? (_d[i + 1] + _sel.g) / 2 : _sel['g'];
+                            _dataT[i + 2] =  isAdd ? (_d[i + 2] + _sel.b) / 2 : _sel['b'];
                         }
 
                     }
-                    var dImgO = context.getImageData(arg.x, arg.y, arg.x_ - arg.x, arg.y_ - arg.y),
-                            _dataT = dImgO.data;
-                    for (var di = 0; di < _d.length; di += 4) {
-                        if (_d[di + 3] > 0) {
-                            _dataT[di] = _d[di];
-                            _dataT[di + 1] = _d[di + 1];
-                            _dataT[di + 2] = _d[di + 2];
-                        }
-                    }
-                    context.putImageData(dImg, arg.x, arg.y);
 
+                    context.putImageData(dImgO, arg.x, arg.y);
+                    context.save();
 
                     arg.n = "#" + selectedC.item;
                     listOfLabels.push(arg);
@@ -659,13 +659,16 @@
                     context2.clearRect(0, 0, _wid, _heig);
                     context2.fillStyle = "rgba(255,255,255,0)";
                     context2.fillRect(0, 0, _wid, _heig);
+//                    context2.putImageData(defaultI,0,0);
                     context2.save();
                 });
 
                 var image_s = new Image();
                 image_s.onload = function () {
-//                    context.save();
+                    context2.save();
+
                     cnt.drawImage(image_s, 0, 0, _wid, _heig);
+                    splitImage(cnt);
                     cnt.font = "13px Verdana";
                     listOfLabels.forEach(function (d) {
                         var x1 = d.center ? d.center[0] : d.x,
