@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <style>
-        #image, #bufferImage,#bufferArea {
+        #image, #bufferImage, #bufferArea {
             position: absolute;
             top: -100vh;
             left: -100vw;
@@ -69,17 +69,23 @@
         initGui();
         redrawImage();
         generateColors();
+        window.addEventListener('resize', function () {
+            redrawImage();
+        })
 
 
     }
     function initGui() {
         property = {
-            polygons: ['QUAD', 'TRIANGLE', 'RANDAOM'],
+            polygons: ['QUAD', 'TRIANGLE', 'RANDOM'],
             colorsAct: ['ADD', 'REPLACE'],
             selectedDrawBy: ['VERTEX', 'POLYGON'],
+            drawForms: ['GRID', 'CIRCLE'],
+            circlePsts: ['CENTER', 'TOP-LEFT', 'TOP-RIGHT', 'BOTTOM-LEFT', 'BOTTOM-RIGHR'],
             accuracy: 1,
             countOfPolygons: 7,
             countGeneratedColors: 10,
+            stepPolygonPoints: 10,
             colorFill: [255, 255, 255, 1.0],
             loadImage: function () {
                 document.getElementById('files').click()
@@ -92,9 +98,12 @@
                 redrawImage()
             }
         };
+        var circleCenter,stepPolygonPoints;
         property.curPolygon = property.polygons[0];
         property.curselectedDrawBy = property.selectedDrawBy[0];
         property.curColorAction = property.colorsAct[0];
+        property.drawForm = property.drawForms[0];
+        property.circleCenter = property.circlePsts[0];
 
         gui = new dat.GUI({width: 240});
         gui.add(property, 'curColorAction', property.colorsAct).onChange(function (value) {
@@ -106,6 +115,22 @@
         gui.add(property, 'curselectedDrawBy', property.selectedDrawBy).onChange(function (value) {
             redrawImage();
         });
+        gui.add(property, 'drawForm', property.drawForms).onChange(function (value) {
+            redrawImage();
+            if (value == property.drawForms[0]) {
+                gui.remove(circleCenter);
+                gui.remove(circleCenter);
+            } else {
+                circleCenter = gui.add(property, 'circleCenter', property.circlePsts).onChange(function (value) {
+                    redrawImage();
+                });
+
+                stepPolygonPoints = gui.add(property, 'stepPolygonPoints', 1, 30).onFinishChange(function (value) {
+                    redrawImage();
+                });
+            }
+        });
+
         gui.add(property, 'accuracy', 1, 15).onFinishChange(function (value) {
             redrawImage();
         });
@@ -274,10 +299,9 @@
 
     }
     function splitImage(cntx, callback) {
-        var _w = canvas.width,
-                _h = canvas.height;
-
         var
+                _w = canvas.width,
+                _h = canvas.height,
                 sY = 100 / property.accuracy,
                 sX = 100 / property.accuracy,
                 context = cntx ? cntx : canvas.getContext('2d');
@@ -323,39 +347,142 @@
             }
             case property.polygons[2]:
             {
-                for (var i = 0; i < _w; i += sX) {
-                    for (var y = 0; y < _h; y += sY) {
-
-                        var points = [
-                                    i, y,
-                                    i + sX / 2, y + sY / 2,
-                                    i + sX*0.8, y + sY*0.8,
-                                    i + sX, y + sY,
-                                    i + sX / 2, y + sY,
-                                    i*0.2, y + sY*0.2
-                                ],
-                                bord = {x: i, y: y, x_: 0, y_: 0};
-
-                        var numberOfSides = property.countOfPolygons,//randomInteger(3,9),
-                                size = sX/2,
-                                Xcenter = i,
-                                Ycenter = y;
-
-                        points =[];
-                        points.push(Xcenter +  size * Math.cos(0), Ycenter +  size *  Math.sin(0));
-
-                        for (var il = 1; il <= numberOfSides;il += 1) {
-                            points.push (Xcenter + size * Math.cos(il * 2 * Math.PI / numberOfSides), Ycenter + size * Math.sin(il * 2 * Math.PI / numberOfSides));
+                if (property.drawForm == property.drawForms[0]) {
+                    for (var i = 0; i < _w; i += sX) {
+                        for (var y = 0; y < _h; y += sY) {
+                            findPoints(i, y);
                         }
-
-
-
-                        selectArea(points, bord);
                     }
+                } else {
+                    var
+                            startPnts = [_w / 2, _h / 2];
 
+                    switch (property.circleCenter) {
+                        case property.circlePsts[1]:
+                        {
+                            startPnts = [0, 0];
+                            break;
+                        }
+                        case property.circlePsts[2]:
+                        {
+                            startPnts = [_w, 0];
+                            break;
+                        }
+                        case property.circlePsts[3]:
+                        {
+                            startPnts = [0, _h];
+                            break;
+                        }
+                        case property.circlePsts[4]:
+                        {
+                            startPnts = [_w, _h];
+                            break;
+                        }
+                    }
+                    var del = property.circleCenter == property.circlePsts[0] ? 1.3 : 2.1,
+                            maxRadius = (_w > _h ? _w : _h) * del,
+                            prev = [_w / 2, _h / 2]
+                            ;
+
+                    for (var minRad = sY, rad =minRad ; rad < maxRadius; rad += sY) {
+                        var bord = {x: _w, y: _h, x_: 0, y_: 0},
+                                points = [],
+                                listP = [],
+                                isNotF =  rad > minRad ;
+
+                        for (var isEn = false,countPnts = 0,sto=1, maxP = property.stepPolygonPoints, stepC =  prev.length, _cI = maxP /stepC,stepCFG=_cI, _stepCI = 0; countPnts <= maxP; countPnts++) {
+                           /* if (countPnts < _cI && !points.length) {
+                             var
+                             fX = prev[_stepCI++],
+                             fY = prev[_stepCI++];
+                             points = [fX,fY];
+                             if (_stepCI >=stepC)_stepCI = 0;
+                             } else {
+                             var
+                             x = startPnts[0] + rad * Math.sin(countPnts / maxP * 2 * Math.PI),
+                             y = startPnts[1] + rad * Math.cos(countPnts / maxP * 2 * Math.PI);
+
+                             if (( countPnts >= _cI) || countPnts + 1 >= maxP) {
+                             selectArea(points, bord);
+                             bord = {x: _w, y: _h, x_: 0, y_: 0};
+                             var
+                             lastX =  points[points.length-2],
+                             lastY =  points[points.length-1];
+
+                             points=[prev[_stepCI++], prev[_stepCI++],lastX,lastY];
+                             if (_stepCI >= stepC)_stepCI = 0;
+                             _cI += stepCFG;
+                             }
+                             listP.push(x, y);
+                             points.push(x, y);
+                             }
+                             }*/
+
+
+                            if(countPnts == 0 && isNotF){
+                                var su = _stepCI;
+                                _stepCI+=2;
+                                points = [prev[su],prev[su+1]];
+                            }
+                                var
+                                        x = startPnts[0] + rad * Math.sin(countPnts / maxP * 2 * Math.PI),
+                                        y = startPnts[1] + rad * Math.cos(countPnts / maxP * 2 * Math.PI);
+                                listP.push(x, y);
+                                points.push(x, y);
+
+                            if (isEn && isNotF ){
+//                                isEn = false;
+                                var
+                                        su = _stepCI,
+                                        fX = prev[su],
+                                        fY = prev[su+1],
+                                        lX = points[points.length-2],
+                                        lY = points[points.length-1]
+                                        ;
+                                _stepCI +=2;
+                                points.push(fX,fY);
+                                selectArea(points, bord);
+//                                if(rad >3*sY  )return
+                                bord = {x: _w, y: _h, x_: 0, y_: 0};
+                                points = [fX,fY,lX,lY];
+//                                if(_stepCI >=prev.length)_stepCI=0;
+                            }else{
+                                isEn = true;
+                            }
+
+
+
+                    }
+                        prev = listP;
+                        if(!isNotF){
+                            selectArea(prev, bord);
+                        }else{
+
+                        }
+                    }
                 }
+
                 break;
             }
+        }
+
+        function findPoints(i, y) {
+
+            var
+                    bord = {x: i, y: y, x_: 0, y_: 0},
+                    numberOfSides = property.countOfPolygons,//randomInteger(3,9),
+                    size = sX / 2,
+                    Xcenter = i,
+                    Ycenter = y,
+                    points = [Xcenter + size * Math.cos(0), Ycenter + size * Math.sin(0)];
+
+            for (var il = 1; il <= numberOfSides; il += 1) {
+                points.push(Xcenter + size * Math.cos(il * 2 * Math.PI / numberOfSides), Ycenter + size * Math.sin(il * 2 * Math.PI / numberOfSides));
+            }
+            bord.center = [Xcenter, Ycenter];
+
+
+            selectArea(points, bord);
         }
 
         function selectArea(points, bord) {
@@ -374,6 +501,7 @@
                 }
                 context.closePath();
                 context.stroke();
+                if(!bord.center) bord.center=getCentroid2(points);
                 if (callback)  callback(bord);
             }
         }
@@ -381,16 +509,39 @@
 
     }
 
+    function getCentroid2(list) {
+        var twoTimesSignedArea = 0;
+        var cxTimes6SignedArea = 0;
+        var cyTimes6SignedArea = 0;
+
+        var arr=[];
+        for(var i =0; i<list.length;i+=2){
+            arr.push([list[i],list[i+1]])
+        }
+        var  length = arr.length;
+
+        var x = function (i) { return arr[i % length][0] };
+        var y = function (i) { return arr[i % length][1] };
+
+        for ( var i = 0; i < arr.length; i++) {
+            var twoSA = x(i)*y(i+1) - x(i+1)*y(i);
+            twoTimesSignedArea += twoSA;
+            cxTimes6SignedArea += (x(i) + x(i+1)) * twoSA;
+            cyTimes6SignedArea += (y(i) + y(i+1)) * twoSA;
+        }
+        var sixSignedArea = 3 * twoTimesSignedArea;
+        return [ cxTimes6SignedArea / sixSignedArea, cyTimes6SignedArea / sixSignedArea];
+    }
     function polygon(ctx, x, y, radius, sides, startAngle, anticlockwise) {
         if (sides < 3) return;
-        var a = (Math.PI * 2)/sides;
-        a = anticlockwise?-a:a;
+        var a = (Math.PI * 2) / sides;
+        a = anticlockwise ? -a : a;
         ctx.save();
-        ctx.translate(x,y);
+        ctx.translate(x, y);
         ctx.rotate(startAngle);
-        ctx.moveTo(radius,0);
+        ctx.moveTo(radius, 0);
         for (var i = 1; i < sides; i++) {
-            ctx.lineTo(radius*Math.cos(a*i),radius*Math.sin(a*i));
+            ctx.lineTo(radius * Math.cos(a * i), radius * Math.sin(a * i));
         }
         ctx.closePath();
         ctx.restore();
@@ -439,8 +590,8 @@
                         _heig = canvas.height,
                         listOfLabels = []
                         ;
-                _can.width = _cant.width  = _wid;
-                _can.height =  _cant.height=  _heig;
+                _can.width = _cant.width = _wid;
+                _can.height = _cant.height = _heig;
 
                 var context = _can.getContext('2d');
                 var context2 = _cant.getContext('2d');
@@ -453,7 +604,14 @@
                     context2.clip();
                     context2.drawImage(image, 0, 0, _wid, _heig);
 
-                    var dImg = context2.getImageData(arg.x, arg.y, arg.x_ - arg.x, arg.y_ - arg.y),
+                    var
+                           widImg =  arg.x_ - arg.x,
+                           height =  arg.y_ - arg.y;
+
+                    if(!widImg || !height)return
+                    var
+
+                            dImg = context2.getImageData(arg.x, arg.y, widImg, height),
                             _d = dImg.data,
                             c = 0, sum = {r: 0, g: 0, b: 0, i: 1};
                     for (var i = 0, en = _d.length; i < en; i += 4) {
@@ -484,11 +642,11 @@
                     }
                     var dImgO = context.getImageData(arg.x, arg.y, arg.x_ - arg.x, arg.y_ - arg.y),
                             _dataT = dImgO.data;
-                    for(var di =0; di<_d.length;di+=4){
-                        if(_d[di+3]>0){
+                    for (var di = 0; di < _d.length; di += 4) {
+                        if (_d[di + 3] > 0) {
                             _dataT[di] = _d[di];
-                            _dataT[di+1] = _d[di+1];
-                            _dataT[di+2] = _d[di+2];
+                            _dataT[di + 1] = _d[di + 1];
+                            _dataT[di + 2] = _d[di + 2];
                         }
                     }
                     context.putImageData(dImg, arg.x, arg.y);
@@ -510,7 +668,9 @@
                     cnt.drawImage(image_s, 0, 0, _wid, _heig);
                     cnt.font = "13px Verdana";
                     listOfLabels.forEach(function (d) {
-                        cnt.fillText(d.n, d.x, d.y);
+                        var x1 = d.center ? d.center[0] : d.x,
+                                y1 = d.center ? d.center[1] : d.y;
+                        cnt.fillText(d.n, x1, y1);
                     });
                 }
                 image_s.src = _can.toDataURL();
