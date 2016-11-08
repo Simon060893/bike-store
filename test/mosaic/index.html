@@ -469,19 +469,33 @@
             }
             case property.polygons[3]:
             {
-                var startX = 0,
+               
+
+//                sY = sY *0.2;
+				if(callback){
+				var arr = splitImage.points;
+					for(var i =0 ;i < arr.length;i++){
+						selectArea(arr[i]);
+					}
+				}else{
+				
+				 var startX = 0,
                         mainPoints = [],
                         delta = 0.5,
                         xy=0,
-                        isFColumn;
-
-//                sY = sY *0.2;
-                while (startX < _w) {
-                    var startY = 0,
-                            prevP = mainPoints[xy],
+						deltaC = 200,
+						maxX = _w+deltaC,
+                        isFColumn,prevCountOfPnts=[];
+						
+					while (startX < maxX) {
+                    var startY = -deltaC,
+					curList = [],
+							xy =0,
+                            prevP = prevCountOfPnts[xy],
+							x2R = randomInteger(sX * delta, sX),
                             x1 = isFColumn?prevP[2]:startX,
                             y1 = isFColumn?prevP[3]:startY,
-                            x2 = startX + sX >= _h ? startX = _w : startX += randomInteger(sX * delta, sX),
+                            x2 = startX + x2R >= maxX ? startX = maxX : startX += x2R,
                             y2 = startY + sY >= _h ? startY = _h : startY += randomInteger(sY * delta, sY),
                             x3 = randomInteger((x1+x2)/2, x2),
                             y3 = startY + sY >= _h ? startY = _h : startY += randomInteger(sY * delta, sY),
@@ -493,24 +507,25 @@
                                 x3, y3,
                                 x4, y4
                             ];
-                    if(isFColumn)xy++;
+                    if(isFColumn && prevCountOfPnts[xy+1])xy++;
                     mainPoints.push(points);
+					curList.push(points);
                     selectArea(points);
                     while (startY < _h) {
 
 
                         var
-                                prevP = mainPoints[xy],
-                                x1 = isFColumn?prevP[2]:points[4],
-                                y1 = isFColumn?prevP[3]:points[5],
-                                x2 = isFColumn?points[4]:points[6],
-                                y2 = isFColumn?points[5]:points[7],
-                                x3 = isFColumn?randomInteger((x1+x2)/2, x2):randomInteger(x2/2, x2),
+                                prevP = prevCountOfPnts[xy],
+                                x1 = /*isFColumn?points[6]:*/points[6],
+                                y1 = /*isFColumn?points[7]:*/points[7],
+                                x2 = /*isFColumn?points[4]:*/points[4],
+                                y2 = /*isFColumn?points[5]:*/points[5],
+                                x3 =  randomInteger((x1+x2)*0.5, x2),
                                 y3 = startY + sY >= _h ? startY = _h : startY += randomInteger(sY * delta, sY),
                                 x4 = isFColumn?prevP[4]:x1,
                                 y4 = isFColumn?prevP[5]:randomInteger(y1, y3);
 
-                        if(isFColumn)xy++;
+                        if(isFColumn && prevCountOfPnts[xy+1])xy++;
                         points = [
                             x1, y1,
                             x2, y2,
@@ -518,12 +533,17 @@
                             x4, y4
                         ];
                         mainPoints.push(points);
+						curList.push(points);
                         selectArea(points);
                     }
                     isFColumn = true;
-                    context.strokeStyle = '#00ff00';
-                     if(startX>100)return;
+                    //context.strokeStyle = '#00ff00';
+					prevCountOfPnts = curList.concat([]);
+                     //if(startX>100)return;
                 }
+				if(!callback)splitImage.points = mainPoints;
+				}
+                
                 break;
             }
         }
@@ -730,7 +750,7 @@
                     context2.save();
 
                     cnt.drawImage(image_s, 0, 0, _wid, _heig);
-                    splitImage(cnt);
+                    splitImage(cnt,function(){});
                     cnt.font = "13px Verdana";
                     listOfLabels.forEach(function (d) {
                         var x1 = d.center ? d.center[0] : d.x,
