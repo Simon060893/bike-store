@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Title</title>
     <style>
-        #image, #bufferImage,#bufferArea,.invisible {
+        #image, #bufferImage, #bufferArea, .invisible {
             position: absolute;
             top: -100vh;
             left: -100vw;
@@ -78,7 +78,7 @@
     }
     function initGui() {
         property = {
-            polygons: ['QUAD', 'TRIANGLE', 'RANDOM'],
+            polygons: ['QUAD', 'TRIANGLE', 'SPIDER', 'RANDOM'],
             colorsAct: ['ADD', 'REPLACE'],
             selectedDrawBy: ['VERTEX', 'POLYGON'],
             drawForms: ['GRID', 'CIRCLE'],
@@ -98,13 +98,13 @@
                 generateColors();
                 redrawImage()
             },
-            save:function () {
-                canvas.toBlob(function(blob) {
+            save: function () {
+                canvas.toBlob(function (blob) {
                     saveAs(blob, "GRID.png");
                 });
             }
         };
-        var circleCenter,stepPolygonPoints;
+        var circleCenter, stepPolygonPoints;
         property.curPolygon = property.polygons[0];
         property.curselectedDrawBy = property.selectedDrawBy[0];
         property.curColorAction = property.colorsAct[0];
@@ -197,10 +197,10 @@
                 _h = image.clientHeight;
 
         if (_w / _h > 1) {
-            canvas.width = window.innerWidth*0.8;
+            canvas.width = window.innerWidth * 0.8;
             canvas.height = canvas.width * (_h / _w);
         } else {
-            canvas.height = window.innerHeight  ;
+            canvas.height = window.innerHeight;
             canvas.width = canvas.height * (_w / _h);
 
         }
@@ -394,14 +394,14 @@
                             prev = [_w / 2, _h / 2]
                             ;
 
-                    for (var minRad = sY, rad =minRad ; rad < maxRadius; rad += sY) {
+                    for (var minRad = sY, rad = minRad; rad < maxRadius; rad += sY) {
                         var
                                 points = [],
                                 listP = [],
-                                isNotF =  rad > minRad ;
+                                isNotF = rad > minRad;
 
-                        for (var isEn = false,countPnts = 0,sto=1, maxP = property.stepPolygonPoints, stepC =  prev.length, _cI = maxP /stepC,stepCFG=_cI, _stepCI = 0; countPnts <= maxP; countPnts++) {
-                           /* if (countPnts < _cI && !points.length) {
+                        for (var isEn = false, countPnts = 0, sto = 1, maxP = property.stepPolygonPoints, stepC = prev.length, _cI = maxP / stepC, stepCFG = _cI, _stepCI = 0; countPnts <= maxP; countPnts++) {
+                            /* if (countPnts < _cI && !points.length) {
                              var
                              fX = prev[_stepCI++],
                              fY = prev[_stepCI++];
@@ -429,43 +429,101 @@
                              }*/
 
 
-                            if(countPnts == 0 && isNotF){
+                            if (countPnts == 0 && isNotF) {
                                 var su = _stepCI;
-                                _stepCI+=2;
-                                points = [prev[su],prev[su+1]];
+                                _stepCI += 2;
+                                points = [prev[su], prev[su + 1]];
                             }
-                                var
-                                        x = startPnts[0] + rad * Math.sin(countPnts / maxP * 2 * Math.PI),
-                                        y = startPnts[1] + rad * Math.cos(countPnts / maxP * 2 * Math.PI);
-                                listP.push(x, y);
-                                points.push(x, y);
+                            var
+                                    x = startPnts[0] + rad * Math.sin(countPnts / maxP * 2 * Math.PI),
+                                    y = startPnts[1] + rad * Math.cos(countPnts / maxP * 2 * Math.PI);
+                            listP.push(x, y);
+                            points.push(x, y);
 
-                            if (isEn && isNotF ){
+                            if (isEn && isNotF) {
                                 var
                                         su = _stepCI,
                                         fX = prev[su],
-                                        fY = prev[su+1],
-                                        lX = points[points.length-2],
-                                        lY = points[points.length-1]
+                                        fY = prev[su + 1],
+                                        lX = points[points.length - 2],
+                                        lY = points[points.length - 1]
                                         ;
-                                _stepCI +=2;
-                                points.push(fX,fY,points[0],points[1]);
-                                   selectArea(points,callback);
-                                points = [fX,fY,lX,lY];
-                            }else{
+                                _stepCI += 2;
+                                points.push(fX, fY, points[0], points[1]);
+                                selectArea(points, callback);
+                                points = [fX, fY, lX, lY];
+                            } else {
                                 isEn = true;
                             }
 
 
-
-                    }
+                        }
                         prev = listP;
-                        if(!isNotF){
-                             selectArea(prev,callback);
+                        if (!isNotF) {
+                            selectArea(prev, callback);
                         }
                     }
                 }
 
+                break;
+            }
+            case property.polygons[3]:
+            {
+                var startX = 0,
+                        mainPoints = [],
+                        delta = 0.5,
+                        xy=0,
+                        isFColumn;
+
+//                sY = sY *0.2;
+                while (startX < _w) {
+                    var startY = 0,
+                            prevP = mainPoints[xy],
+                            x1 = isFColumn?prevP[2]:startX,
+                            y1 = isFColumn?prevP[3]:startY,
+                            x2 = startX + sX >= _h ? startX = _w : startX += randomInteger(sX * delta, sX),
+                            y2 = startY + sY >= _h ? startY = _h : startY += randomInteger(sY * delta, sY),
+                            x3 = randomInteger((x1+x2)/2, x2),
+                            y3 = startY + sY >= _h ? startY = _h : startY += randomInteger(sY * delta, sY),
+                            x4 = isFColumn?prevP[4]:x1,
+                            y4 = isFColumn?prevP[5]:randomInteger(y1, y3),
+                            points = [
+                                x1, y1,
+                                x2, y2,
+                                x3, y3,
+                                x4, y4
+                            ];
+                    if(isFColumn)xy++;
+                    mainPoints.push(points);
+                    selectArea(points);
+                    while (startY < _h) {
+
+
+                        var
+                                prevP = mainPoints[xy],
+                                x1 = isFColumn?prevP[2]:points[4],
+                                y1 = isFColumn?prevP[3]:points[5],
+                                x2 = isFColumn?points[4]:points[6],
+                                y2 = isFColumn?points[5]:points[7],
+                                x3 = isFColumn?randomInteger((x1+x2)/2, x2):randomInteger(x2/2, x2),
+                                y3 = startY + sY >= _h ? startY = _h : startY += randomInteger(sY * delta, sY),
+                                x4 = isFColumn?prevP[4]:x1,
+                                y4 = isFColumn?prevP[5]:randomInteger(y1, y3);
+
+                        if(isFColumn)xy++;
+                        points = [
+                            x1, y1,
+                            x2, y2,
+                            x3, y3,
+                            x4, y4
+                        ];
+                        mainPoints.push(points);
+                        selectArea(points);
+                    }
+                    isFColumn = true;
+                    context.strokeStyle = '#00ff00';
+                     if(startX>100)return;
+                }
                 break;
             }
         }
@@ -489,9 +547,9 @@
             selectArea(points);
         }
 
-        function selectArea(points,cntx ) {
+        function selectArea(points, cntx) {
             if (points.length) {
-                var bord= {x: _w, y: _h, x_: 0, y_: 0};
+                var bord = {x: _w, y: _h, x_: 0, y_: 0};
                 context.beginPath();
                 context.moveTo(points[0], points[1]);
                 for (var _pn = 2, _enP = points.length; _pn < _enP; _pn += 2) {
@@ -506,7 +564,7 @@
                 }
                 context.closePath();
                 context.stroke();
-                if(!bord.center) bord.center=getCentroid2(points);
+                if (!bord.center) bord.center = getCentroid2(points);
                 if (callback)  callback(bord);
             }
         }
@@ -519,23 +577,27 @@
         var cxTimes6SignedArea = 0;
         var cyTimes6SignedArea = 0;
 
-        var arr=[];
-        for(var i =0; i<list.length;i+=2){
-            arr.push([list[i],list[i+1]])
+        var arr = [];
+        for (var i = 0; i < list.length; i += 2) {
+            arr.push([list[i], list[i + 1]])
         }
-        var  length = arr.length;
+        var length = arr.length;
 
-        var x = function (i) { return arr[i % length][0] };
-        var y = function (i) { return arr[i % length][1] };
+        var x = function (i) {
+            return arr[i % length][0]
+        };
+        var y = function (i) {
+            return arr[i % length][1]
+        };
 
-        for ( var i = 0; i < arr.length; i++) {
-            var twoSA = x(i)*y(i+1) - x(i+1)*y(i);
+        for (var i = 0; i < arr.length; i++) {
+            var twoSA = x(i) * y(i + 1) - x(i + 1) * y(i);
             twoTimesSignedArea += twoSA;
-            cxTimes6SignedArea += (x(i) + x(i+1)) * twoSA;
-            cyTimes6SignedArea += (y(i) + y(i+1)) * twoSA;
+            cxTimes6SignedArea += (x(i) + x(i + 1)) * twoSA;
+            cyTimes6SignedArea += (y(i) + y(i + 1)) * twoSA;
         }
         var sixSignedArea = 3 * twoTimesSignedArea;
-        return [ cxTimes6SignedArea / sixSignedArea, cyTimes6SignedArea / sixSignedArea];
+        return [cxTimes6SignedArea / sixSignedArea, cyTimes6SignedArea / sixSignedArea];
     }
     function polygon(ctx, x, y, radius, sides, startAngle, anticlockwise) {
         if (sides < 3) return;
@@ -600,17 +662,17 @@
 
                 var context = _can.getContext('2d');
                 var context2 = _cant.getContext('2d'),
-                        defaultI =  context2.createImageData(_wid,_heig);
+                        defaultI = context2.createImageData(_wid, _heig);
                 context2.clearRect(0, 0, canvas.width, canvas.height);
                 context.drawImage(image, 0, 0, _wid, _heig);
                 context2.save();
 
                 splitImage(context2, function (arg) {
                     var
-                            widImg =  arg.x_ - arg.x,
-                            height =  arg.y_ - arg.y;
+                            widImg = arg.x_ - arg.x,
+                            height = arg.y_ - arg.y;
 
-                    if(!widImg || !height)return;
+                    if (!widImg || !height)return;
                     context2.clip();
                     context2.drawImage(image, 0, 0, _wid, _heig);
 
@@ -618,7 +680,7 @@
 
                             dImg = context2.getImageData(arg.x, arg.y, widImg, height),
                             _d = dImg.data,
-                           sum = {r: 0, g: 0, b: 0, i: 1};
+                            sum = {r: 0, g: 0, b: 0, i: 1};
                     for (var i = 0, en = _d.length; i < en; i += 4) {
 
                         if (_d[i + 3] > 0) {
@@ -642,9 +704,9 @@
                     for (var i = 0, en = _d.length; i < en; i += 4) {
 
                         if (_d[i + 3] > 0) {
-                            _dataT[i] =      isAdd ? (_d[i] + _sel.r) / 2 : _sel['r'];
-                            _dataT[i + 1] =  isAdd ? (_d[i + 1] + _sel.g) / 2 : _sel['g'];
-                            _dataT[i + 2] =  isAdd ? (_d[i + 2] + _sel.b) / 2 : _sel['b'];
+                            _dataT[i] = isAdd ? (_d[i] + _sel.r) / 2 : _sel['r'];
+                            _dataT[i + 1] = isAdd ? (_d[i + 1] + _sel.g) / 2 : _sel['g'];
+                            _dataT[i + 2] = isAdd ? (_d[i + 2] + _sel.b) / 2 : _sel['b'];
                         }
 
                     }
